@@ -1,0 +1,59 @@
+umount /target/boot/efi
+umount /target/boot
+
+mkfs.ext4 /dev/vda3
+> y
+
+mkdir /tgt
+mount /dev/vda3 /tgt
+
+tar -cz -f /tgt/target.tgz /target/*
+--OR--
+cp -ar /target/* /tgt/
+
+umount -l target
+cryptsetup luksFormat /dev/vda4
+cryptsetup open /dev/vda4 cryptroot
+mkfs.btrfs /dev/mapper/cryptroot
+
+mkdir /broot
+mount -t btrfs /dev/mapper/cryptroot /broot
+btrfs subvolume create /broot/@
+btrfs subvolume create /broot/@home
+btrfs subvolume create /broot/@snapshots
+
+
+mount -t btrfs -o noatime,subvol=@ /dev/mapper/cryptroot /target
+mkdir /target/home
+mount -t btrfs -o noatime,subvol=@home /dev/mapper/cryptroot /target/home
+mkdir /target/.snapshots
+mount -t btrfs -o noatime,subvol=@snapshots /dev/mapper/cryptroot /target/.snapshots
+cp -a /tgt/. /target/
+mount /dev/vda2 /target/boot
+mount /dev/vda1 /target/boot/efi
+umount /cryptroot
+umount /mnt
+mkswap /dev/sda3
+
+mount --bind /dev /target/dev
+mount --bind /proc /target/proc
+mount --bind /sys /target/sys
+chroot /target /bin/bash
+
+
+# add crypttab
+cryptroot /dev/disk/by-uuid/<uuid> none luks,discard
+
+cryptsetup open /dev/vda4 cryptroot
+
+# fix fstab swap
+# fix fstab root
+/dev/mapper/cryptroot / btrfs defaults,noatime,subvol=@ 0 0
+/dev/mapper/cryptroot /home btrfs defaults,noatime,subvol=@home 0 0
+/dev/mapper/cryptroot /snapshots btrfs defaults,noatime,subvol=@snapshots 0 0
+
+update-initramfs -u
+update-grub
+reboot
+
+
