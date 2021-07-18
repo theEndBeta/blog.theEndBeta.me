@@ -1,0 +1,19 @@
+.contact-link {
+	.fas {
+		font-weight: 400;
+	}
+	a {
+		color: var(--font-color);
+		&:hover {
+			color: var(--link-color);
+			border-bottom: none;
+		}
+	}
+	ul {
+		padding-left: 10px;
+	}
+	li {
+		padding: 10px;
+		list-style: none;
+	}
+}
