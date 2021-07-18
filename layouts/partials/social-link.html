@@ -1,0 +1,11 @@
+<div class="social">
+  <div class="social-link">
+    <a
+        {{ with .iconClass }}class="{{ . }}"{{ end }}
+        title="{{ .title }}"
+        href="{{ .url }}"
+    >
+      {{ .content }}
+    </a>
+  </div>
+</div>

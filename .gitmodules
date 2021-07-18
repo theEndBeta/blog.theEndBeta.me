@@ -1,3 +1,9 @@
 [submodule "themes/base16"]
 	path = themes/base16
 	url = https://github.com/htdvisser/hugo-base16-theme.git
+[submodule "themes/Blonde"]
+	path = themes/Blonde
+	url = https://github.com/opera7133/Blonde.git
+[submodule "themes/anubis"]
+	path = themes/anubis
+	url = https://github.com/mitrichius/hugo-theme-anubis.git

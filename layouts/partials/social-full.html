@@ -1,0 +1,7 @@
+<ul class="social">
+  {{ range $.Site.Params.socialFull }}
+    <li>
+        {{ partial "social-link.html" . }}
+    </li>
+  {{ end }}
+</ul>

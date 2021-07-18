@@ -1,0 +1,86 @@
+languageCode: "en-us"
+baseURL: "http://blog.theEndBeta.me"
+title: "theEndBeta - Technology and Other Ramblings"
+theme: "anubis"
+paginate: 10
+enableRobotsTXT: true
+
+assetDir: "static"
+
+menu:
+  main:
+    - identifier: "about"
+      name: "About"
+      url: "/about/"
+      weight: 1
+
+    - identifier: "tags"
+      name: "Tags"
+      url: "/tags/"
+      weight: 2
+
+    - name: "Archive"
+      identifier: "archive"
+      url: "/posts/"
+      weight: 3
+
+params:
+  author: "Aidan Stein"
+
+  description: "Guides, Musings, and Other Ramblings About Tech"
+  dateFormat: "2006-01-02"
+
+  paginationSinglePost: true
+  style: "auto"
+
+  readMore: true
+
+
+  # utteranc.es support
+  utterancesRepo: ""  # mandatory
+  utterancesTheme: "" # optional
+  utterancesIssue: "" # optional
+  utterancesLabel: "" # optional
+
+
+  social:
+    - id: "github"
+      name: "theEndBeta"
+    - id: "linkedin"
+      name: "aidan-stein-4915b2a8"
+    - id: "telegram"
+      name: "theEndBeta"
+
+  socialFull:
+    - iconClass: "fab fa-github fa-lg"
+      title: "GitHub"
+      content: "theEndBeta"
+      url: "https://github.com/theEndBeta"
+    - iconClass: "fab fa-linkedin fa-lg"
+      title: "LinkedIn"
+      content: "Aidan Stein"
+      url: "https://www.linkedin.com/in/aidan-stein-4915b2a8"
+    - iconClass: "fas fa-project-diagram fa-lg"
+      title: "matrix"
+      content: "@theendbeta:jupiterbroadcasting.com"
+      url: "https://matrix.to/#/@theendbeta:jupiterbroadcasting.com"
+    - iconClass: "fab fa-telegram fa-lg"
+      title: "Telegram"
+      content: "theEndBeta"
+      url: "tg://resolve?domain=theEndBeta"
+    - iconClass: "fab fa-discord fa-lg"
+      title: "Discord"
+      content: "theEndBeta#0379"
+      url: "https://discord.com/"
+
+
+  taxonomies:
+    category: "categories"
+    tag: "tags"
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+
+# vim: set ts=2 sw=2 expandtab:
