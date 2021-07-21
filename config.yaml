@@ -1,5 +1,5 @@
 languageCode: "en-us"
-baseURL: "http://blog.theEndBeta.me"
+baseURL: "https://blog.theEndBeta.me"
 title: "theEndBeta - Technology and Other Ramblings"
 theme: "anubis"
 paginate: 10
