@@ -6,6 +6,8 @@
   .contact-link a:hover {
     color: var(--link-color);
     border-bottom: none; }
+  .contact-link a:before {
+    padding-right: 5px; }
 
 .contact-link ul {
   padding-left: 10px; }

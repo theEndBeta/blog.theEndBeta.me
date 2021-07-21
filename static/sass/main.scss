@@ -8,6 +8,10 @@
 			color: var(--link-color);
 			border-bottom: none;
 		}
+
+		&:before {
+			padding-right: 5px;
+		}
 	}
 	ul {
 		padding-left: 10px;
