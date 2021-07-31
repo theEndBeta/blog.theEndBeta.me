@@ -1,4 +1,135 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>theEndBeta - Technology and Other Ramblings</title><link>https://blog.theEndBeta.me/</link><description>theEndBeta - Technology and Other Ramblings</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><atom:link href="https://blog.theEndBeta.me/index.xml" rel="self" type="application/rss+xml"/><item><title/><link>https://blog.theEndBeta.me/about/</link><pubDate>Sun, 27 Jun 2021 00:00:00 +0000</pubDate><guid>https://blog.theEndBeta.me/about/</guid><description>&lt;h1 id="about">About&lt;/h1>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>theEndBeta - Technology and Other Ramblings</title><link>https://blog.theEndBeta.me/</link><description>theEndBeta - Technology and Other Ramblings</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Sat, 31 Jul 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.theEndBeta.me/index.xml" rel="self" type="application/rss+xml"/><item><title>Rootless Reverse Proxy with Podman</title><link>https://blog.theEndBeta.me/posts/podman_nginx_rootless/</link><pubDate>Sat, 31 Jul 2021 00:00:00 +0000</pubDate><guid>https://blog.theEndBeta.me/posts/podman_nginx_rootless/</guid><description>&lt;p>I&amp;rsquo;ve switched almost entirely to &lt;a href="Podman.io">Podman&lt;/a> for all of my container needs, thanks primarily to it&amp;rsquo;s
+rootless-first structure, but there was still one use case with some hurdles - rootless reverse proxy to other pods (not
+just containers) running on the system.
+There are two issues that stand out for this use case:&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>Service discovery&lt;/p>
+&lt;p>&lt;a href="https://doc.traefik.io/traefik/providers/docker/">Traefik + Docker/docker-compose&lt;/a> seems to be the gold standard
+for this kind of container orchestration.
+Just add a couple of labels to your container and traefik will automatically keep track of that container how to
+route to it.
+We won&amp;rsquo;t get quite that convenient, but I think I&amp;rsquo;ve come up with a reasonable alternative.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Exposing on port 80/443&lt;/p>
+&lt;p>By default, only root processes can bind to TCP or UDP ports below 1024. This might be a minor issue to you if you
+are okay with running your http(s) services on port 8080/8443, but that is not a great user experience.
+This is not an issue with Docker since the docker socket runs as root and likes to &amp;ldquo;helpfully&amp;rdquo; punch holes in
+your firewall for you.
+Working around this will require root priviledges, but I&amp;rsquo;ve minimized what has to be done, and it doesn&amp;rsquo;t require
+the container itself to have root.&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h2 id="service-discovery">Service Discovery&lt;/h2>
+&lt;p>Service discovery is arguably the more annoying of the two, since it&amp;rsquo;s obvious workarounds are very manual.
+Since it also doesn&amp;rsquo;t require any root priviledges, we&amp;rsquo;ll start there.&lt;/p>
+&lt;p>The key here is using &lt;a href="https://podman.io/getting-started/network#using-dns-in-container-networks">Podman container networks DNS&lt;/a>.
+All &lt;em>new&lt;/em> bridge networks (also rootless!) created with podman have the &lt;a href="https://github.com/containers/dnsname">dnsname
+plugin&lt;/a> enabled by default.
+This works like so:&lt;/p>
+&lt;script async type="application/javascript" src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js">
+var config = {
+startOnLoad:true,
+theme:'dark',
+align:'center'
+};
+mermaid.initialize(config);
+&lt;/script>
+&lt;div class="mermaid">
+flowchart LR
+subgraph n01[Podman Network]
+subgraph rp[Rev Proxy Pod]
+rp01(Rev Proxy);
+end
+subgraph pod01["Service Pod 01 (`pod01`)"]
+service01(container01 *:80)
+end
+subgraph pod02["Service Pod 02 (`pod02`)"]
+service02(container02 *:8080) --> data[(Data)]
+end
+rp-- "pod01.dns.podman:80" -->pod01;
+rp-- "pod02.dns.podman:8080" -->pod02;
+end
+style n01 fill:white
+&lt;/div>
+&lt;p>Each pod and/or container is created within (or added to) a single podman network with the dnsname plugin. This means
+that within the network, pods can refer to each other using &lt;code>{pod_name}.dns.podman&lt;/code> (domain configurable). All you need
+now is to make sure that the pod is exposing the ports for your container and create a simple configuration in your
+reverse proxy to route to this pod.&lt;/p>
+&lt;p>E.g. To route &lt;code>service01.mydomain.com&lt;/code> to &lt;code>container01&lt;/code> running on port 80 in &lt;code>pod01&lt;/code> you just need to proxy your desired
+url to &lt;code>pod01.dns.podman:80&lt;/code>.&lt;/p>
+&lt;h3 id="example">Example&lt;/h3>
+&lt;p>Here&amp;rsquo;s a simple bash script and nginx configuration snippet to spin up a docker registry and nginx instance and have
+nginx proxy the url &lt;code>registry.mydomain.com&lt;/code> to the registry that is running on port 80 in it&amp;rsquo;s pod.
+We have to:&lt;/p>
+&lt;ul>
+&lt;li>create a network&lt;/li>
+&lt;li>create a pod for each application we want&lt;/li>
+&lt;li>create/start the containers in their respective pods&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">&lt;span style="color:#75715e">#!/bin/bash
+&lt;/span>&lt;span style="color:#75715e">&lt;/span>
+podname&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;container-registry&amp;#34;&lt;/span>
+network&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;pod_network&amp;#34;&lt;/span>
+podman network create &lt;span style="color:#e6db74">&amp;#34;&lt;/span>$network&lt;span style="color:#e6db74">&amp;#34;&lt;/span>
+&lt;span style="color:#75715e"># Create a pod connected to the network&lt;/span>
+podman pod create &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --name &lt;span style="color:#e6db74">&amp;#34;&lt;/span>$podname&lt;span style="color:#e6db74">&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> -p &lt;span style="color:#ae81ff">80&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --net $network
+&lt;span style="color:#75715e"># Create a container in that pod&lt;/span>
+podman run &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --detach &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --init &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --name &lt;span style="color:#e6db74">&amp;#34;&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>podname&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">-registry&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --pod &lt;span style="color:#e6db74">&amp;#34;&lt;/span>$podname&lt;span style="color:#e6db74">&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --userns keep-id &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --volume &lt;span style="color:#e6db74">&amp;#34;./docker-registry/:/var/lib/registry/&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --volume &lt;span style="color:#e6db74">&amp;#34;./registry.config.yml:/etc/docker/registry/config.yml&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> docker.io/registry:2
+&lt;span style="color:#75715e"># Create a second pod and container for nginx&lt;/span>
+podman pod create &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --name &lt;span style="color:#e6db74">&amp;#34;nginx&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> -p &lt;span style="color:#ae81ff">8080&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> -p &lt;span style="color:#ae81ff">8443&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --net &lt;span style="color:#e6db74">&amp;#34;&lt;/span>$network&lt;span style="color:#e6db74">&amp;#34;&lt;/span>
+podman create &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --name &lt;span style="color:#e6db74">&amp;#34;nginx-reverse&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --pod &lt;span style="color:#e6db74">&amp;#34;nginx&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --expose &lt;span style="color:#ae81ff">8080&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --expose &lt;span style="color:#ae81ff">8443&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --volume &lt;span style="color:#e6db74">&amp;#34;./nginx.conf.d/:/etc/nginx/conf.d/&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --volume &lt;span style="color:#e6db74">&amp;#34;./nginx.conf:/etc/nginx/nginx.conf&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> nginx:stable
+&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-nginx" data-lang="nginx">&lt;span style="color:#66d9ef">server&lt;/span> {
+&lt;span style="color:#f92672">listen&lt;/span> &lt;span style="color:#ae81ff">8080&lt;/span>;
+&lt;span style="color:#f92672">server_name&lt;/span> &lt;span style="color:#e6db74">registry.mydomain.com&lt;/span>;
+&lt;span style="color:#f92672">return&lt;/span> &lt;span style="color:#ae81ff">301&lt;/span> &lt;span style="color:#e6db74">https://registry.mydomain.com&lt;/span>$request_uri;
+}
+&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="exposing-on-port-80443">Exposing on Port 80/443&lt;/h2>
+&lt;p>Doing this requires root access no matter which way you slice it.
+The simplest way is to low the minimum port that non-root processes are allowed to access to 80, but that&amp;rsquo;s just a bad
+idea, so I&amp;rsquo;m not going to bother telling you how to do that (not to mention I&amp;rsquo;ve also forgotten that detail).&lt;/p>
+&lt;p>Something we can do with a far more limited scope is to have our firewall redirect port 80/443 on our desired input
+interface or IP to port 8080/8443 (or your desired ports) on our system.&lt;/p>
+&lt;p>The basic idea is to add the following rules to the &lt;code>nat&lt;/code> chain, and they should be among the first rules to be
+evaluated by your firewall.
+For example, if you are running Ubuntu with &lt;a href="https://wiki.ubuntu.com/UncomplicatedFirewall">UFW&lt;/a>, you could add the
+following block to the top of &lt;code>/etc/ufw/before.rules&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-plain" data-lang="plain">*nat
+:PREROUTING ACCEPT [0:0]
+-F PREROUTING
+-A PREROUTING -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
+-A PREROUTING -i eth0 -p tcp --dport 443 -j REDIRECT --to-port 8443
+COMMIT
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>This will append two rules to the &lt;code>PREROUTING&lt;/code> chain in the &lt;code>NAT&lt;/code> table, which tell &lt;code>iptables&lt;/code> to redirect tcp packets
+arriving on interface &lt;code>eth0&lt;/code> on port 80 and 443 to ports 8080 and 8443, respectively, on the host system.
+Then all you have to do is have your web server/reverse proxy listening on 8080 and 8443.&lt;/p>
+&lt;p>&lt;strong>Warning:&lt;/strong> Be careful when using &lt;code>-F PREROUTING&lt;/code> as this command will clear all existing commands from the
+&lt;code>PREROUTING&lt;/code> chain in this table. This is useful here because I know that the &lt;code>PREROUTING&lt;/code> chain is (or should be) clear
+at this point and prevents re-appending the same rules multiple times (e.g. if you happened reload to reload/restart UFW
+without first removing the original rules).&lt;/p></description></item><item><title/><link>https://blog.theEndBeta.me/about/</link><pubDate>Sun, 27 Jun 2021 00:00:00 +0000</pubDate><guid>https://blog.theEndBeta.me/about/</guid><description>&lt;h1 id="about">About&lt;/h1>
 &lt;p>&lt;strong>Aidan Stein (he/him)&lt;/strong> - aka &lt;em>theEndBeta&lt;/em> aka &lt;em>greatpigeon&lt;/em> depending of where you&amp;rsquo;re looking for me.&lt;/p>
 &lt;p>I&amp;rsquo;m a software engineer, self-hoster, and (pragmatic) open-source evangelist with a particular interest in the
 infrastructure and systems at the heart of modern computing. I have a deep-rooted love for diving down rabbit holes when
