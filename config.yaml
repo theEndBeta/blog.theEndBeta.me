@@ -14,15 +14,20 @@ menu:
       url: "/about/"
       weight: 1
 
+    - identifier: "musings"
+      name: "Musings"
+      url: "/musings/"
+      weight: 2
+
     - identifier: "tags"
       name: "Tags"
       url: "/tags/"
-      weight: 2
+      weight: 3
 
     - name: "Archive"
       identifier: "archive"
       url: "/posts/"
-      weight: 3
+      weight: 4
 
 params:
   author: "Aidan Stein"
@@ -35,6 +40,9 @@ params:
 
   readMore: true
 
+  mainSections:
+    - posts
+    - musings
 
   # utteranc.es support
   utterancesRepo: ""  # mandatory
