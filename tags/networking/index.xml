@@ -68,46 +68,53 @@ We have to:&lt;/p>
 &lt;li>create a pod for each application we want&lt;/li>
 &lt;li>create/start the containers in their respective pods&lt;/li>
 &lt;/ul>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">&lt;span style="color:#75715e">#!/bin/bash
-&lt;/span>&lt;span style="color:#75715e">&lt;/span>
-podname&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;container-registry&amp;#34;&lt;/span>
-network&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;pod_network&amp;#34;&lt;/span>
-podman network create &lt;span style="color:#e6db74">&amp;#34;&lt;/span>$network&lt;span style="color:#e6db74">&amp;#34;&lt;/span>
-&lt;span style="color:#75715e"># Create a pod connected to the network&lt;/span>
-podman pod create &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --name &lt;span style="color:#e6db74">&amp;#34;&lt;/span>$podname&lt;span style="color:#e6db74">&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> -p &lt;span style="color:#ae81ff">80&lt;/span> &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --net $network
-&lt;span style="color:#75715e"># Create a container in that pod&lt;/span>
-podman run &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --detach &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --init &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --name &lt;span style="color:#e6db74">&amp;#34;&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>podname&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">-registry&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --pod &lt;span style="color:#e6db74">&amp;#34;&lt;/span>$podname&lt;span style="color:#e6db74">&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --userns keep-id &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --volume &lt;span style="color:#e6db74">&amp;#34;./docker-registry/:/var/lib/registry/&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --volume &lt;span style="color:#e6db74">&amp;#34;./registry.config.yml:/etc/docker/registry/config.yml&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> docker.io/registry:2
-&lt;span style="color:#75715e"># Create a second pod and container for nginx&lt;/span>
-podman pod create &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --name &lt;span style="color:#e6db74">&amp;#34;nginx&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> -p &lt;span style="color:#ae81ff">8080&lt;/span> &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> -p &lt;span style="color:#ae81ff">8443&lt;/span> &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --net &lt;span style="color:#e6db74">&amp;#34;&lt;/span>$network&lt;span style="color:#e6db74">&amp;#34;&lt;/span>
-podman create &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --name &lt;span style="color:#e6db74">&amp;#34;nginx-reverse&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --pod &lt;span style="color:#e6db74">&amp;#34;nginx&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --expose &lt;span style="color:#ae81ff">8080&lt;/span> &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --expose &lt;span style="color:#ae81ff">8443&lt;/span> &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --volume &lt;span style="color:#e6db74">&amp;#34;./nginx.conf.d/:/etc/nginx/conf.d/&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> --volume &lt;span style="color:#e6db74">&amp;#34;./nginx.conf:/etc/nginx/nginx.conf&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
-&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> nginx:stable
-&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-nginx" data-lang="nginx">&lt;span style="color:#66d9ef">server&lt;/span> {
-&lt;span style="color:#f92672">listen&lt;/span> &lt;span style="color:#ae81ff">8080&lt;/span>;
-&lt;span style="color:#f92672">server_name&lt;/span> &lt;span style="color:#e6db74">registry.mydomain.com&lt;/span>;
-&lt;span style="color:#f92672">return&lt;/span> &lt;span style="color:#ae81ff">301&lt;/span> &lt;span style="color:#e6db74">https://registry.mydomain.com&lt;/span>$request_uri;
-}
-&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="exposing-on-port-80443">Exposing on Port 80/443&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">#!/bin/bash
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>podname&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;container-registry&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>network&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;pod_network&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>podman network create &lt;span style="color:#e6db74">&amp;#34;&lt;/span>$network&lt;span style="color:#e6db74">&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># Create a pod connected to the network&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>podman pod create &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --name &lt;span style="color:#e6db74">&amp;#34;&lt;/span>$podname&lt;span style="color:#e6db74">&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> -p &lt;span style="color:#ae81ff">80&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --net $network
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># Create a container in that pod&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>podman run &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --detach &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --init &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --name &lt;span style="color:#e6db74">&amp;#34;&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>podname&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">-registry&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --pod &lt;span style="color:#e6db74">&amp;#34;&lt;/span>$podname&lt;span style="color:#e6db74">&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --userns keep-id &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --volume &lt;span style="color:#e6db74">&amp;#34;./docker-registry/:/var/lib/registry/&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --volume &lt;span style="color:#e6db74">&amp;#34;./registry.config.yml:/etc/docker/registry/config.yml&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> docker.io/registry:2
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># Create a second pod and container for nginx&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>podman pod create &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --name &lt;span style="color:#e6db74">&amp;#34;nginx&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> -p &lt;span style="color:#ae81ff">8080&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> -p &lt;span style="color:#ae81ff">8443&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --net &lt;span style="color:#e6db74">&amp;#34;&lt;/span>$network&lt;span style="color:#e6db74">&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>podman create &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --name &lt;span style="color:#e6db74">&amp;#34;nginx-reverse&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --pod &lt;span style="color:#e6db74">&amp;#34;nginx&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --expose &lt;span style="color:#ae81ff">8080&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --expose &lt;span style="color:#ae81ff">8443&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --volume &lt;span style="color:#e6db74">&amp;#34;./nginx.conf.d/:/etc/nginx/conf.d/&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> --volume &lt;span style="color:#e6db74">&amp;#34;./nginx.conf:/etc/nginx/nginx.conf&amp;#34;&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span> nginx:stable
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-nginx" data-lang="nginx">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">server&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">listen&lt;/span> &lt;span style="color:#ae81ff">8080&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">server_name&lt;/span> &lt;span style="color:#e6db74">registry.mydomain.com&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">return&lt;/span> &lt;span style="color:#ae81ff">301&lt;/span> &lt;span style="color:#e6db74">https://registry.mydomain.com&lt;/span>$request_uri;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="exposing-on-port-80443">Exposing on Port 80/443&lt;/h2>
 &lt;p>Doing this requires root access no matter which way you slice it.
 The simplest way is to low the minimum port that non-root processes are allowed to access to 80, but that&amp;rsquo;s just a bad
 idea, so I&amp;rsquo;m not going to bother telling you how to do that (not to mention I&amp;rsquo;ve also forgotten that detail).&lt;/p>
@@ -117,13 +124,14 @@ interface or IP to port 8080/8443 (or your desired ports) on our system.&lt;/p>
 evaluated by your firewall.
 For example, if you are running Ubuntu with &lt;a href="https://wiki.ubuntu.com/UncomplicatedFirewall">UFW&lt;/a>, you could add the
 following block to the top of &lt;code>/etc/ufw/before.rules&lt;/code>:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-plain" data-lang="plain">*nat
-:PREROUTING ACCEPT [0:0]
--F PREROUTING
--A PREROUTING -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
--A PREROUTING -i eth0 -p tcp --dport 443 -j REDIRECT --to-port 8443
-COMMIT
-&lt;/code>&lt;/pre>&lt;/div>&lt;p>This will append two rules to the &lt;code>PREROUTING&lt;/code> chain in the &lt;code>NAT&lt;/code> table, which tell &lt;code>iptables&lt;/code> to redirect tcp packets
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-plain" data-lang="plain">&lt;span style="display:flex;">&lt;span>*nat
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>:PREROUTING ACCEPT [0:0]
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>-F PREROUTING
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>-A PREROUTING -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>-A PREROUTING -i eth0 -p tcp --dport 443 -j REDIRECT --to-port 8443
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>COMMIT
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>This will append two rules to the &lt;code>PREROUTING&lt;/code> chain in the &lt;code>NAT&lt;/code> table, which tell &lt;code>iptables&lt;/code> to redirect tcp packets
 arriving on interface &lt;code>eth0&lt;/code> on port 80 and 443 to ports 8080 and 8443, respectively, on the host system.
 Then all you have to do is have your web server/reverse proxy listening on 8080 and 8443.&lt;/p>
 &lt;p>&lt;strong>Warning:&lt;/strong> Be careful when using &lt;code>-F PREROUTING&lt;/code> as this command will clear all existing commands from the
