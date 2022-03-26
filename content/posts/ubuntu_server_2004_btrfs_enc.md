@@ -44,7 +44,7 @@ This is the only step you are probably going to want to do _during_ the main ins
 installer write all the required files to the correct partitions, so you don't have to think as much about where files
 need to go later.
 
-![Custom Paritions](../images/ubuntu_server_2004_btrfs_enc/installer_07_05_final.png)
+![Custom Paritions](images/ubuntu_server_2004_btrfs_enc/installer_07_05_final.png)
 
 
 Here I've gotten all my partitions set up for a UEFI boot.
@@ -58,7 +58,7 @@ Now all that's left is to let the installer do it's work.
 
 Once the installation has "completed," we need to enter the shell to actually perform the encryption.
 
-![We're Done?](../images/ubuntu_server_2004_btrfs_enc/installer_12_enter_shell.png)
+![We're Done?](images/ubuntu_server_2004_btrfs_enc/installer_12_enter_shell.png)
 
 #### Aside
 
